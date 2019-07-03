@@ -1,0 +1,372 @@
+# Global Variables #
+LIMIT = 1000
+MAXQ = 100
+
+def random_search(board):
+    """
+    This function is an example and not an efficient solution to the nqueens problem. What it essentially does is flip
+    over the board and put all the queens on a random position.
+    :param board: list/array representation of columns and the row of the queen on that column
+    """
+
+    i = 0
+    optimum = (len(board) - 1) * len(board) / 2
+
+    while evaluate_state(board) != optimum:
+        i += 1
+        print('iteration ' + str(i) + ': evaluation = ' + str(evaluate_state(board)))
+        if i == LIMIT:  # Give up after 1000 tries.
+            break
+
+        for column, row in enumerate(board):  # For each column, place the queen in a random row
+            board[column] = random.randint(0, len(board) - 1)
+
+    if evaluate_state(board) == optimum:
+        print('Solved puzzle!')
+
+    print('Final state is:')
+    print_board(board)
+
+
+def hill_climbing(board, nqueens):
+    """
+    From the initial node, keep choosing the neighbor with highest value,
+    stopping when no neighbor is better.
+    :param nqueens: The number of queens in the problem, also affects board size.
+    :param board: list/array representation of columns and the row of the queen on that column, 2d array.
+    :return: A solution if found or, the final state in a human readable format.
+    """
+
+    """
+    Python implamentation from the text's github
+
+    def hill_climbing(problem):
+        current = Node(problem.initial)
+        while True:
+            neighbors = current.expand(problem)
+            if not neighbors:
+                break
+            neighbor = argmax_random_tie(neighbors,
+                                         key=lambda node: problem.value(node.state))
+            if problem.value(neighbor.state) <= problem.value(current.state):
+                break
+            current = neighbor
+        return current.state
+
+
+    pseudocode from the text (Artificial Intelligence p.122)
+        function HILL-CLIMBING(problem)
+            returns a state that is a local maximum
+            current ← MAKE-NODE(problem.INITIAL-STATE)
+            loop do
+                neighbor ← a highest-valued successor of current
+                if neighbor.VALUE ≤ current.VALUE then return current.STATE
+                current ← neighbor
+
+    available functions
+    in_conflict_with_another_queen(row, column, board)
+    in_conflict(column, row, other_column, other_row)
+    count_conflicts(board)
+    evaluate_state(board)
+    print_state(board)
+    """
+
+    i = 0
+    optimum = (len(board) - 1) * len(board) / 2
+    successor = tuple()
+    successorList = []
+    newBoard = board.copy()
+    explored = []
+
+    while evaluate_state(board) != optimum:
+        counter = 0
+        move = False
+
+        if board in explored:    ## if we get stuck in a loop step left in a place or 2
+            for column, row in enumerate(board):
+                if column / random.randint(1, 2) == 0:
+                    board[column] = board[column] - 1
+
+        explored.append(board)
+
+        print('iteration = ' + str(i) + ': evaluation = ' + str(evaluate_state(board))
+              + "conflicts = " + str(count_conflicts(board)))
+        if i == LIMIT:  # Give up after user inputed number of tries.
+            break
+        i += 1
+
+        for column, row in enumerate(board):
+            if in_conflict_with_another_queen(row, column, board) == True:
+                if in_conflict(column, row, column + 1, row) == False:  # move up
+                    if column + 1 < nqueens:
+                        successor = (column + 1, row)
+                        successorList.append(successor)
+                        move = True
+                        counter += 1
+
+                elif in_conflict(column, row, column - 1, row) == False:  # move down
+                    if column - 1 >= 0:
+                        successor = (column - 1, row)
+                        successorList.append(successor)
+                        move = True
+                        counter += 1
+
+                elif in_conflict(column, 0, column, row - 1) == False:  # move left
+                    if row - 1 >= 0:
+                        successor = (column, row - 1)
+                        successorList.append(successor)
+                        move = True
+                        counter += 1
+
+                elif in_conflict(column, 0, column, row + 1) == False:  # move right
+                    if row + 1 < nqueens:
+                        successor = (column, row + 1)
+                        successorList.append(successor)
+                        move = True
+                        counter += 1
+
+                else:    # Set the counter to 0 if no changes are made to the board.
+                    counter = 0
+
+        if counter == 0:
+            for column, row in enumerate(board):  # For each column, place the queen in a random row
+                newBoard[column] = random.randint(0, len(board) - 1)
+        else:
+            for y in range(0, len(successorList) - 1):
+                change = successorList.pop()
+                newBoard[change[0]] = change[1]
+
+        if evaluate_state(newBoard) > evaluate_state(board):
+            board = newBoard.copy()
+
+
+
+    if evaluate_state(board) == optimum:
+        print('Solved puzzle!')
+    print('Final state is:')
+    print_board(board)
+
+
+def schedule(k = 20, lam = 0.005, limit = 100):
+    """
+    One possible schedule function for simulated annealing uses pythons functional paradigm
+    """
+    return lambda t: (k * math.exp(-lam * t) if t < limit else 0)
+
+
+def simulated_annealing(board):
+    """
+    Iteration of hill climbing that aims to "structure" random walking.
+    The innermost loop of the simulated-annealing algorithm is quite similar to hill climbing.
+    Instead of picking the best move, however, it picks a random move. If the move improves the situation,
+    it is always accepted. Otherwise, the algorithm accepts the move with some probability less than 1 (Artificial Intelligence p. 125).
+    :param nqueens: The number of queens in the problem, also affects board size.
+    :param board: list/array representation of columns and the row of the queen on that column
+    :return: A solution if found or, the final state in a human readable format.
+    """
+
+    """
+    Python implamentation from the text's github
+
+    def simulated_annealing(problem, schedule=exp_schedule()):
+    current = Node(problem.initial)
+    for t in range(sys.maxsize):
+        T = schedule(t)
+        if T == 0:
+            return current.state
+        neighbors = current.expand(problem)
+        if not neighbors:
+            return current.state
+        next_choice = random.choice(neighbors)
+        delta_e = problem.value(next_choice.state) - problem.value(current.state)
+        if delta_e > 0 or probability(math.exp(delta_e / T)):
+            current = next_choice
+
+    pseudocode from the text (Artificial Intelligence p.126)
+
+        function SIMULATED-ANNEALING(problem, schedule) returns a solution state
+            inputs: problem, a problem
+                    schedule, a mapping from time to “temperature”
+
+            current ← MAKE-NODE(problem.INITIAL-STATE)
+            for t = 1 to ∞ do
+                T ← schedule(t)
+                if T = 0 then return current
+                next ← a randomly selected successor of current
+                ΔE ← next.VALUE – current.VALUE
+                if ΔE > 0 then current ← next
+                else current ← next only with probability eΔE/T
+
+    available functions
+    in_conflict_with_another_queen(row, column, board)
+    in_conflict(column, row, other_column, other_row)
+    count_conflicts(board)
+    evaluate_state(board)
+    print_state(board)
+    """
+
+    # Variables
+    annealing = schedule()
+    optimum = (len(board) - 1) * len(board) / 2
+    i = 0
+    counter = 0
+    explored = []
+
+    # Logic
+    while evaluate_state(board) != optimum:
+        print('iteration ' + str(i) + ': evaluation = ' + str(evaluate_state(board))
+              + ' conflicts ' + str(count_conflicts(board))) #+ ' Schedule ' + str(t))
+        if i == LIMIT:  # Give up after 1000 tries.
+            break
+        i += 1
+
+        # for x in range(sys.maxsize):
+        counter = 0
+        move = False
+        if board in explored:  ## if we get stuck in a loop step left in a place or 2
+            for column, row in enumerate(board):
+                if column / random.randint(1, 2) == 0:
+                    board[column] = board[column] - 1
+
+        explored.append(board)
+        newBoard = board.copy()
+        for x in range(0, LIMIT):
+            t = annealing(x)
+            if t == 0:
+                if evaluate_state(board) == optimum:
+                    print('Solved puzzle!')
+                    print_board(board)
+                    return
+                else:
+                    break
+
+            for column, row in enumerate(board):
+                if in_conflict_with_another_queen(row, column, board) == True:
+                    if in_conflict(column, row, column + 1, row) == False:  # move up
+                        if column + 1 < nqueens:
+                            successor = (column + 1, row)
+                            successorList.append(successor)
+                            move = True
+                            counter += 1
+
+                    elif in_conflict(column, row, column - 1, row) == False:  # move down
+                        if column - 1 >= 0:
+                            successor = (column - 1, row)
+                            successorList.append(successor)
+                            move = True
+                            counter += 1
+
+                    elif in_conflict(column, 0, column, row - 1) == False:  # move left
+                        if row - 1 >= 0:
+                            successor = (column, row - 1)
+                            successorList.append(successor)
+                            move = True
+                            counter += 1
+
+                    elif in_conflict(column, 0, column, row + 1) == False:  # move right
+                        if row + 1 < nqueens:
+                            successor = (column, row + 1)
+                            successorList.append(successor)
+                            move = True
+                            counter += 1
+
+                    else:  # Set the counter to 0 if no changes are made to the board.
+                        counter = 0
+
+            if counter == 0:
+                for column, row in enumerate(board):  # For each column, place the queen in a random row
+                    newBoard[column] = random.randint(0, len(board) - 1)
+            else:
+                for y in range(0, len(successorList)):
+                    change = successorList.pop()
+                    newBoard[change[0]] = change[1]
+
+            delta = evaluate_state(newBoard) - evaluate_state(board)
+
+            if delta > 0:
+                board = newBoard.copy()
+            elif probability(delta, t) == True:
+                board = newBoard.copy()
+
+    if evaluate_state(board) == optimum:
+        print('Solved puzzle!')
+    print('Final state is:')
+    print_board(board)
+
+
+def reproduce(x, y):
+    # a[-2:]   last two items in the array
+    # a[:-2]   everything except the last two items
+    n = len(x)
+    c = random.randint(1, n-1)
+    x = x[:-c]
+    y = y[-c:]
+    x = x+y
+    return x
+
+
+def check_pop(population):
+    optimum = ((len(population[0]) - 1) * len(population[0])) / 2
+    for board in population:
+        if evaluate_state(board) == optimum:
+            return board
+    return None
+
+
+def mutate(individual):
+    n = random.randint(0, len(individual)-1)
+    r = random.randint(0, len(individual)-1)
+    individual[n] = r
+    return individual
+
+
+def max_new_pop(population):
+    max = -1
+    for item in population:
+        x = evaluate_state(item)
+        if x>max:
+            max = x
+    return max
+
+
+# takes 50000+ iterations to find a solution for N=8, be careful
+def genetic_algorithm(population):
+    iteration = 0
+    while True:
+        iteration+=1
+        new_population = []
+        for i in range(0,len(population)):
+            j = random.randint(0, 3)
+            x = population[j]
+            k = random.randint(0,3)
+            y = population[k]
+            child = reproduce(x, y)
+            mutate(child)
+            new_population.append(child)
+        population = new_population
+        if iteration == 100000:
+            break
+        max_evaluate = max_new_pop(population)
+        print('iteration ' + str(iteration) + ': evaluation = ' + str(max_evaluate))
+        a = check_pop(population)
+        if a is not None:
+            print('Solved puzzle!')
+            break
+    print('Final state is:')
+    if a is not None:
+        print_board(a)
+    else:
+        print_board(population[0])
+
+
+
+def probability(delta, t):
+    e = math.e
+    decProb = (e * delta) / t    # decimal probability represented as a decimal > 1, 1 = 100%
+    percent = decProb * 100
+    probability = random.randint(0, 100)
+
+    if (probability <= percent):
+        return True
+    else:
+        return False
