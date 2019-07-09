@@ -104,6 +104,33 @@ def init_board(nqueens):
 """
 
 
+def random_restart(board):
+
+    for column, row in enumerate(board):  # For each column, place the queen in a random row
+        board[column] = random.randint(0, len(board) - 1)
+
+        return board
+
+
+def expand(board, nqueens):
+    move_list = []
+
+    for column, row in enumerate(board):
+        if in_conflict_with_another_queen(row, column, board):
+
+            if not in_conflict_with_another_queen(row + 1, column, board):  # Move up
+                if row + 1 <= nqueens:
+                    move_up = (column, row + 1)
+                    move_list.append(move_up)
+
+            elif not in_conflict_with_another_queen(row - 1, column, board):  # Move down
+                if row - 1 >= 0:
+                    move_down = (column, row - 1)
+                    move_list.append(move_down)
+
+    return move_list
+
+
 def random_search(board):
     """
     This function is an example and not an efficient solution to the nqueens.py problem. What it essentially does is flip
@@ -137,6 +164,7 @@ def hill_climbing(board, nqueens):
     :param nqueens: The number of queens in the problem, also affects board size.
     :param board: list/array representation of columns and the row of the queen on that column, 2d array.
     :return: A solution if found or, the final state in a human readable format.
+    should succeed 14% of the time w?out sideways moves. 84% with
     """
 
     """
@@ -159,7 +187,6 @@ def hill_climbing(board, nqueens):
     # Variables #
     iteration = 0
     optimum = (len(board) - 1) * len(board) / 2
-    move_list = []
     neighbors = []
     explored = []
 
@@ -174,33 +201,16 @@ def hill_climbing(board, nqueens):
             break
 
         iteration += 1
-        move = False
         explored.append(board)
-        new_board = board.copy()
 
-        if board in explored:    # If we get stuck in a loop random restart
-            for column, row in enumerate(board):  # For each column, place the queen in a random row
-                board[column] = random.randint(0, len(board) - 1)
+        # if board in explored:    # If we get stuck in a loop random restart
+        #     board = random_restart(board)
 
-        for column, row in enumerate(board):
-            if in_conflict_with_another_queen(row, column, board):
+        move_list = expand(board, nqueens)
 
-                if not in_conflict_with_another_queen(row + 1, column, board):  # Move up
-                    if row + 1 <= nqueens:
-                        move_up = (column, row + 1)
-                        move_list.append(move_up)
-                        move = True
-
-                elif not in_conflict_with_another_queen(row - 1, column, board):  # Move down
-                    if row - 1 >= 0:
-                        move_down = (column, row - 1)
-                        move_list.append(move_down)
-                        move = True
-
-        if not move:
-            for column, row in enumerate(board):  # For each column, place the queen in a random row
-                new_board[column] = random.randint(0, len(board) - 1)
-                neighbors.append(new_board)
+        if move_list is None:
+            print('no neighbors')
+            break
         else:
             for move in move_list:
                 changed_board = board.copy()
@@ -280,7 +290,6 @@ def simulated_annealing(board, nqueens):
     i = 0
     explored = []
     neighbors = []
-    successor_list = []
 
     # Logic
     while evaluate_state(board) != optimum:
@@ -289,10 +298,8 @@ def simulated_annealing(board, nqueens):
         if i == LIMIT:  # Give up after 1000 tries.
             break
 
-        move = False
         i += 1
         explored.append(board)
-        new_board = board.copy()
 
         # for x in range(sys.maxsize):
 
@@ -311,25 +318,13 @@ def simulated_annealing(board, nqueens):
                 else:
                     break
 
-            for column, row in enumerate(board):
-                if in_conflict_with_another_queen(row, column, board):
-                    if not in_conflict_with_another_queen(row + 1, column, board):  # move up
-                        if row + 1 < nqueens:
-                            successor = (column, row + 1)
-                            successor_list.append(successor)
-                            move = True
+            move_list = expand(board, nqueens)
 
-                    elif not in_conflict_with_another_queen(row - 1, column, board):  # move down
-                        if row - 1 >= 0:
-                            successor = (column, row - 1)
-                            successor_list.append(successor)
-                            move = True
-
-            if not move:
-                for column, row in enumerate(board):  # For each column, place the queen in a random row
-                    new_board[column] = random.randint(0, len(board) - 1)
+            if move_list is None:
+                print('no neighbors')
+                break
             else:
-                for move in successor_list:
+                for move in move_list:
                     changed_board = board.copy()
                     changed_board[move[0]] = move[1]
                     neighbors.append(changed_board)
@@ -346,7 +341,7 @@ def simulated_annealing(board, nqueens):
             elif probability(delta, t):
                 board = new_board.copy()
 
-            successor_list.clear()
+            move_list.clear()
             neighbors.clear()
 
     if evaluate_state(board) == optimum:
