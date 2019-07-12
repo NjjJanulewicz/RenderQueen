@@ -114,18 +114,53 @@ def random_restart(nqueens):
         return board
 
 
-def expand(board, nqueens):
+def expand_sideways(old_board, nqueens):
     """
     Note: changed_board = board, makes changed_board point to board, where, board.copy ensures that changed_board
     is pointing to a copy, not effecting the current board
     Generates all neighbors of the current state and returns the best option.
-    :param board:
+    :param old_board:
     :param nqueens:
     :return: The highest valued successor of the current state
     """
 
     move_list = []
     neighbors = []
+    board = old_board.copy()
+
+    for column, row in enumerate(board):  # Generates moves
+        if row + 1 <= nqueens:  # Move up
+            move_up = (column, row + 1)
+            move_list.append(move_up)
+        elif row - 1 >= 0:  # Move down
+            move_down = (column, row - 1)
+            move_list.append(move_down)
+
+    for move in move_list:  # Generates neighbors
+        changed_board = board.copy()
+        changed_board[move[0]] = move[1]
+        neighbors.append(changed_board)
+
+    for state in neighbors:  # Picks the best neighbor
+        if evaluate_state(state) == evaluate_state(board):
+            board = state
+
+    return board
+
+
+def expand_uphill(old_board, nqueens):
+    """
+    Note: changed_board = board, makes changed_board point to board, where, board.copy ensures that changed_board
+    is pointing to a copy, not effecting the current board
+    Generates all neighbors of the current state and returns the best option.
+    :param old_board:
+    :param nqueens:
+    :return: The highest valued successor of the current state
+    """
+
+    move_list = []
+    neighbors = []
+    board = old_board.copy()
 
     for column, row in enumerate(board):  # Generates moves
         if row + 1 <= nqueens:  # Move up
@@ -180,12 +215,14 @@ def hill_climbing(board, nqueens):
     :param nqueens: The number of queens in the problem, also affects board size.
     :param board: list/array representation of columns and the row of the queen on that column, 2d array.
     :return: A solution if found or, the final state in a human readable format.
-    should succeed 14% of the time w?out sideways moves. 84% with
+    should succeed 14% of the time w/out sideways moves. 84% with
     """
 
     # Variables #
     iteration = 0
     optimum = (len(board) - 1) * len(board) / 2
+    explored = []
+    sideways_counter = 0
 
     # Algorithm #
     while evaluate_state(board) != optimum:
@@ -196,9 +233,21 @@ def hill_climbing(board, nqueens):
         if iteration == LIMIT:  # Give up after 1000 tries.
             break
 
-        neighbor = expand(board, nqueens)
+        if board not in explored:
+            sideways_counter = 0
+            explored.append(board)
+            neighbor = expand_uphill(board, nqueens)
+            print('uphill move')
+        elif sideways_counter < 100:
+            neighbor = expand_sideways(board, nqueens)
+            sideways_counter += 1
+            print('sideways move')
+        else:
+            sideways_counter = 0
+            neighbor = random_restart(nqueens)
+            print('random restart')
 
-        if evaluate_state(neighbor) > evaluate_state(board):
+        if evaluate_state(neighbor) >= evaluate_state(board):
             board = neighbor
 
     if evaluate_state(board) == optimum:
@@ -236,7 +285,6 @@ def simulated_annealing(board, nqueens):
     :param board: list/array representation of columns and the row of the queen on that column
     :return: A solution if found or, the final state in a human readable format.
     """
-
     # Variables
     annealing = schedule()
     optimum = (len(board) - 1) * len(board) / 2
@@ -257,18 +305,15 @@ def simulated_annealing(board, nqueens):
                 break
 
             new_board = random_restart(nqueens)
-
             delta = evaluate_state(new_board) - evaluate_state(board)
 
             if delta > 0 or probability(delta, t):
-                board = new_board.copy()
+                board = new_board
 
     if evaluate_state(board) == optimum:
         print('Solved puzzle!')
     print('Final state is:')
     print_board(board)
-
-
 
 
 def reproduce(x, y):
