@@ -104,7 +104,9 @@ def init_board(nqueens):
 """
 
 
-def random_restart(board):
+def random_restart(nqueens):
+
+    board = init_board(nqueens)
 
     for column, row in enumerate(board):  # For each column, place the queen in a random row
         board[column] = random.randint(0, len(board) - 1)
@@ -113,36 +115,32 @@ def random_restart(board):
 
 
 def expand(board, nqueens):
+    """
+    Note: changed_board = board, makes changed_board point to board, where, board.copy ensures that changed_board
+    is pointing to a copy, not effecting the current board
+    Generates all neighbors of the current state and returns the best option.
+    :param board:
+    :param nqueens:
+    :return: The highest valued successor of the current state
+    """
+
     move_list = []
-
-    for column, row in enumerate(board):
-        if in_conflict_with_another_queen(row, column, board):
-
-            if not in_conflict_with_another_queen(row + 1, column, board):  # Move up
-                if row + 1 <= nqueens:
-                    move_up = (column, row + 1)
-                    move_list.append(move_up)
-
-            elif not in_conflict_with_another_queen(row - 1, column, board):  # Move down
-                if row - 1 >= 0:
-                    move_down = (column, row - 1)
-                    move_list.append(move_down)
-
-    return move_list
-
-    successorList = []
-
-
-def generate_neighbor(board, move_list):
-
     neighbors = []
 
-    for move in move_list:
+    for column, row in enumerate(board):  # Generates moves
+        if row + 1 <= nqueens:  # Move up
+            move_up = (column, row + 1)
+            move_list.append(move_up)
+        elif row - 1 >= 0:  # Move down
+            move_down = (column, row - 1)
+            move_list.append(move_down)
+
+    for move in move_list:  # Generates neighbors
         changed_board = board.copy()
-        changed_board[move[0]] = move[move[1]]
+        changed_board[move[0]] = move[1]
         neighbors.append(changed_board)
 
-    for state in neighbors:
+    for state in neighbors:  # Picks the best neighbor
         if evaluate_state(state) > evaluate_state(board):
             board = state
 
@@ -185,59 +183,27 @@ def hill_climbing(board, nqueens):
     should succeed 14% of the time w?out sideways moves. 84% with
     """
 
-    """
-    def hill_climbing(problem):
-    From the initial node, keep choosing the neighbor with highest value,
-    stopping when no neighbor is better. [Figure 4.2]
-    current = Node(problem.initial)
-    while True:
-        neighbors = current.expand(problem)
-        if not neighbors:
-            break
-        neighbor = argmax_random_tie(neighbors,
-                                     key=lambda node: problem.value(node.state))
-        if problem.value(neighbor.state) <= problem.value(current.state):
-            break
-        current = neighbor
-    return current.state
-    """
-
     # Variables #
     iteration = 0
     optimum = (len(board) - 1) * len(board) / 2
-    neighbors = []
-    explored = []
 
     # Algorithm #
     while evaluate_state(board) != optimum:
+        iteration += 1
+        print('iteration ' + str(iteration) + ': evaluation = ' + str(evaluate_state(board))
+              + ' conflicts ' + str(count_conflicts(board)))
 
-        # Limit check #
-        print('iteration = ' + str(iteration) + ': evaluation = ' + str(evaluate_state(board))
-              + ' conflicts = ' + str(count_conflicts(board)))
-        if iteration == LIMIT:  # Give up after limit
-            print('limit reached')
+        if iteration == LIMIT:  # Give up after 1000 tries.
             break
 
-        iteration += 1
-        explored.append(board)
+        neighbor = expand(board, nqueens)
 
-        # if board in explored:    # If we get stuck in a loop random restart
-        #     board = random_restart(board)
-
-        move_list = expand(board, nqueens)
-
-        neighbor = generate_neighbor(board, move_list)
-
-        if neighbor not in explored:
+        if evaluate_state(neighbor) > evaluate_state(board):
             board = neighbor
-        else:
-            board = random_restart(board)
-
-        move_list.clear()
-        neighbors.clear()
 
     if evaluate_state(board) == optimum:
         print('Solved puzzle!')
+
     print('Final state is:')
     print_board(board)
 
@@ -278,23 +244,19 @@ def simulated_annealing(board, nqueens):
 
     # Logic
     while evaluate_state(board) != optimum:
-
+        iterator += 1
         print('iteration ' + str(iterator) + ': evaluation = ' + str(evaluate_state(board))
-              + ' conflicts ' + str(count_conflicts(board)))  # + ' Schedule ' + str(t))
+              + ' conflicts ' + str(count_conflicts(board)))
 
         if iterator == LIMIT:  # Give up after 1000 tries.
             break
-
-        iterator += 1
-        new_board = board.copy()
 
         for x in range(sys.maxsize):
             t = annealing(x)
             if t == 0:
                 break
 
-            for column, row in enumerate(board):  # For each column, place the queen in a random row
-                new_board[column] = random.randint(0, len(board) - 1)
+            new_board = random_restart(nqueens)
 
             delta = evaluate_state(new_board) - evaluate_state(board)
 
