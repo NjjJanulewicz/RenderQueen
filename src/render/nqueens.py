@@ -312,17 +312,12 @@ def simulated_annealing(board, nqueens):
 
 
 def reproduce(x, y):
-    # a[-2:]   last two items in the array
-    # a[:-2]   everything except the last two items
     n = len(x)
-    c = random.randint(1, n-1)
-    x = x[:-c]
-    y = y[-c:]
-    x = x+y
-    return x
+    c = random.randint(0, n)
+    return x[:c] + y[c:]
 
 
-def check_pop(population):
+def check_population(population):
     optimum = ((len(population[0]) - 1) * len(population[0])) / 2
     for board in population:
         if evaluate_state(board) == optimum:
@@ -338,42 +333,41 @@ def mutate(individual):
 
 
 def max_new_pop(population):
-    max = -1
+    maximum = -1
     for item in population:
         x = evaluate_state(item)
-        if x>max:
-            max = x
-    return max
+        if x > maximum:
+            maximum = x
+    return maximum
 
 
-# takes 50000+ iterations to find a solution for N=8, be careful
 def genetic_algorithm(population):
+
     iteration = 0
+    print('making moves')
+
     while True:
         iteration += 1
         new_population = []
-        for i in range(0, len(population)):
-            j = random.randint(0, 3)
-            x = population[j]
-            k = random.randint(0, 3)
-            y = population[k]
+        for i in range(len(population)):
+            x = population[random.randint(0, len(population) - 1)]
+            y = population[random.randint(0, len(population) - 1)]
             child = reproduce(x, y)
             mutate(child)
             new_population.append(child)
+
         population = new_population
         if iteration == 100000:
             break
-        max_evaluate = max_new_pop(population)
-        print('iteration ' + str(iteration) + ': evaluation = ' + str(max_evaluate))
-        a = check_pop(population)
+
+        a = check_population(population)
         if a is not None:
             print('Solved puzzle!')
-            break
+            print_board(a)
+            return
+
     print('Final state is:')
-    if a is not None:
-        print_board(a)
-    else:
-        print_board(population[0])
+    print_board(population[0])
 
 
 def main():
