@@ -227,8 +227,6 @@ def hill_climbing(board, nqueens):
     # Algorithm #
     while evaluate_state(board) != optimum:
         iteration += 1
-        print('iteration ' + str(iteration) + ': evaluation = ' + str(evaluate_state(board))
-              + ' conflicts ' + str(count_conflicts(board)))
 
         if iteration == LIMIT:  # Give up after 1000 tries.
             break
@@ -237,15 +235,12 @@ def hill_climbing(board, nqueens):
             sideways_counter = 0
             explored.append(board)
             neighbor = expand_uphill(board, nqueens)
-            print('uphill move')
         elif sideways_counter < 100:
             neighbor = expand_sideways(board, nqueens)
             sideways_counter += 1
-            print('sideways move')
         else:
             sideways_counter = 0
             neighbor = random_restart(nqueens)
-            print('random restart')
 
         if evaluate_state(neighbor) >= evaluate_state(board):
             board = neighbor
@@ -290,13 +285,13 @@ def simulated_annealing(board, nqueens):
     optimum = (len(board) - 1) * len(board) / 2
     iterator = 0
 
+    print('making moves')
+
     # Logic
     while evaluate_state(board) != optimum:
         iterator += 1
-        print('iteration ' + str(iterator) + ': evaluation = ' + str(evaluate_state(board))
-              + ' conflicts ' + str(count_conflicts(board)))
 
-        if iterator == LIMIT:  # Give up after 1000 tries.
+        if iterator == 10000:  # Give up after 1000 tries.
             break
 
         for x in range(sys.maxsize):
