@@ -332,15 +332,6 @@ def mutate(individual):
     return individual
 
 
-def max_new_pop(population):
-    maximum = -1
-    for item in population:
-        x = evaluate_state(item)
-        if x > maximum:
-            maximum = x
-    return maximum
-
-
 def genetic_algorithm(population):
 
     iteration = 0
